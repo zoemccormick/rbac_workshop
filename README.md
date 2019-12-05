@@ -77,7 +77,7 @@ Lastly, deploy the fibonacci service by running the following commands.
 ./fib.sh
 ```
 
-In your browser, you should now see the fibonacci service among the core services.  When this is the case, your setup is complete!
+In your browser, you should now see the fibonacci service among the core services.  Navigate to <https://{your-ec2-ip}:30000/services/fibonacci/latest>, if you see `Alive`, the fibonacci service is running.  When this is the case, your setup is complete!
 
 ## Basic RBAC
 
@@ -176,7 +176,9 @@ curl -k --header "user_dn: cn=not.you" --cert ./certs/quickstart.crt --key ./cer
 
 The response should be `Alive`. So if we impersonate the "not you" user, we are allowed access.
 
-Now, as a second example, we will allow the quickstart certificate dn full access (`PUT`, `POST`, `DELETE`, etc.) to the service.  We will also allow anyone to `GET` request the service, regardless of identity. 
+## A more useful example
+
+Now, as a second example, we will allow the quickstart certificate dn full access (`PUT`, `POST`, `DELETE`, etc.) to the service.  We will also allow anyone to `GET` request the service, regardless of identity.
 
 To do this, we will change the `user_dn` in the RBAC policy to `CN=quickstart,OU=Engineering,O=Decipher Technology Studios,L=Alexandria,ST=Virginia,C=US`, the one from the quickstart certificate.  Then when we pass the header in the request, we should have full access to the service.  We will also add a second policy to allow _all_ users `GET` access.
 
@@ -190,7 +192,7 @@ To do this, we will change the `user_dn` in the RBAC policy to `CN=quickstart,OU
         "action": 0,
         "policies": {
             "001": {
-                "permissions": 
+                "permissions":
                 [
                     {"any": true}
                 ],
@@ -228,11 +230,13 @@ curl -k -X PUT  --header "user_dn: CN=quickstart,OU=Engineering,O=Decipher Techn
 2. The second request should have given `RBAC: access denied` as this was a `PUT` request without the header allowed in the policy. 
 3. The third request should have also succeeded with response `Alive`, because it was a `PUT` request with the header `user_dn: CN=quickstart,OU=Engineering,O=Decipher Technology Studios,L=Alexandria,ST=Virginia,C=US` .
 
-There are many more complex ways to configure the RBAC filter for different policies, permissions, and IDs.  Information on configuring these can be found in the Envoy documentation [here](https://www.envoyproxy.io/docs/envoy/v1.7.0/api-v2/config/rbac/v2alpha/rbac.proto).
-
-To disable the RBAC filter, simply `greymatter edit proxy fibonacci-proxy` and delete `"envoy.rbac"` from the `"active_proxy_filters"`.
-
-
 ### Complex Configurations
 
-The RBAC filter mirrors Envoy's configuration options, and thus the full set of configuration options
+There are many more complex ways to configure the RBAC filter for different policies, permissions, and IDs.  Information on configuring these can be found in the Envoy documentation [here](https://www.envoyproxy.io/docs/envoy/v1.7.0/api-v2/config/rbac/v2alpha/rbac.proto).
+
+If we have time in the workshop, lets try a more complex configuration.
+
+
+
+
+To disable the RBAC filter, simply `greymatter edit proxy fibonacci-proxy` and delete `"envoy.rbac"` from the `"active_proxy_filters"`.
