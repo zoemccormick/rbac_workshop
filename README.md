@@ -220,19 +220,19 @@ To test the new policies, hit `https://{your-ec2-public-ip}:{port}/services/fibo
 1. This request should respond with `Alive`, as it is a `GET` request to the service.
 
     ```diff
-    curl -k --cert /etc/ssl/quickstart/certs/quickstart.crt --key /etc/ssl/quickstart/certs/quickstart.key https://{your-ec2-public-ip}:{port}/services/fibonacci/1.0/
+    curl -k --cert /etc/ssl/quickstart/certs/quickstart.crt --key /etc/ssl/quickstart/certs/quickstart.key https://$GREYMATTER_API_HOST/services/fibonacci/1.0/
     ```
 
 2. This request should respond `RBAC: access denied` as this was a `PUT` request without the header allowed in the policy.
 
     ```diff
-    curl -k -X PUT  --cert /etc/ssl/quickstart/certs/quickstart.crt --key /etc/ssl/quickstart/certs/quickstart.key https://{your-ec2-public-ip}:{port}/services/fibonacci/1.0/
+    curl -k -X PUT  --cert /etc/ssl/quickstart/certs/quickstart.crt --key /etc/ssl/quickstart/certs/quickstart.key https://$GREYMATTER_API_HOST/services/fibonacci/1.0/
     ```
 
 3. This should succeed with response `Alive`, because it was a `PUT` request with the header `user_dn: CN=quickstart,OU=Engineering,O=Decipher Technology Studios,L=Alexandria,ST=Virginia,C=US` .
 
     ```diff
-    curl -k -X PUT  --header "user_dn: CN=quickstart,OU=Engineering,O=Decipher Technology Studios,L=Alexandria,ST=Virginia,C=US" --cert /etc/ssl/quickstart/certs/quickstart.crt --key /etc/ssl/quickstart/certs/quickstart.key https://{your-ec2-public-ip}:{port}/services/fibonacci/1.0/
+    curl -k -X PUT  --header "user_dn: CN=quickstart,OU=Engineering,O=Decipher Technology Studios,L=Alexandria,ST=Virginia,C=US" --cert /etc/ssl/quickstart/certs/quickstart.crt --key /etc/ssl/quickstart/certs/quickstart.key https://$GREYMATTER_API_HOST/services/fibonacci/1.0/
     ```
 
 ### Complex Configurations
