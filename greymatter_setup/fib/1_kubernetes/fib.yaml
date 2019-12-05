@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fibonacci
+spec:
+  selector:
+    matchLabels:
+      app: fibonacci
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: fibonacci
+    spec:
+      containers:
+      - name: fibonacci
+        image: docker.production.deciphernow.com/services/fibonacci:latest
+        ports:
+        - containerPort: 8080
+      - name: sidecar
+        image: docker.production.deciphernow.com/deciphernow/gm-proxy:latest
+        imagePullPolicy: Always
+        ports:
+        - name: proxy
+          containerPort: 9080
+        - name: metrics
+          containerPort: 8081
+        env:
+        - name: PROXY_DYNAMIC
+          value: "true"
+        - name: XDS_CLUSTER
+          value: fibonacci
+        - name: XDS_HOST
+          value: control.default.svc.cluster.local
+        - name: XDS_PORT
+          value: "50000"
+      imagePullSecrets:
+      - name: docker.secret

@@ -1,0 +1,28 @@
+{
+    "zone_key": "zone-default-zone",
+    "proxy_key": "fibonacci-proxy",
+    "domain_keys": ["fibonacci"],
+    "listener_keys": ["fibonacci-listener"],
+    "name": "fibonacci",
+    "active_proxy_filters": ["gm.metrics", "gm.observables"],
+    "proxy_filters": {
+        "gm_metrics": {
+            "metrics_port": 8081,
+            "metrics_host": "0.0.0.0",
+            "metrics_dashboard_uri_path": "/metrics",
+            "metrics_prometheus_uri_path": "/prometheus",
+            "metrics_ring_buffer_size": 4096,
+            "prometheus_system_metrics_interval_seconds": 15,
+            "metrics_key_function": "depth"
+        },
+        "gm_observables": {
+            "emitFullResponse": false,
+            "useKafka": false,
+            "eventTopic": "observables",
+            "enforceAudit": false,
+            "topic": "fibonacci",
+            "kafkaZKDiscover": false,
+            "kafkaServerConnection": "kafka-default.fabric.svc:9092"
+        }
+    }
+}

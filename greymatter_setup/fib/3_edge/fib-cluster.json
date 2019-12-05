@@ -1,0 +1,6 @@
+{
+    "zone_key": "zone-default-zone",
+    "cluster_key": "edge-fibonacci-cluster",
+    "name": "fibonacci",
+    "instances": []
+}
