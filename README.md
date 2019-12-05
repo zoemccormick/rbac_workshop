@@ -2,7 +2,9 @@
 
 ## Setup
 
-This workshop will go through how to configure basic RBAC rules.  The setup of the mesh, the greymatter cli, and deployment of the fibonacci service are scripted here for you, but see [Greymatter Workshops](https://github.com/deciphernow/workshops) for the full step by step setup.  The RBAC portion of this workshop also largely follows that in the [RBAC Configuration](https://github.com/DecipherNow/workshops/blob/master/training/4.%20Grey%20Matter%20Configuration/Grey%20Matter%20Configuration%20Training.md#securing-the-mesh-with-role-based-access-control-rbac) portion of the greymatter workshops.
+This workshop will go through how to restrict service access via the Grey Matter RBAC filter.  
+
+The setup of the mesh, the greymatter cli, and deployment of the fibonacci service are scripted here for you, but see [Greymatter Workshops](https://github.com/deciphernow/workshops) for the full step by step setup.  The RBAC portion of this workshop also largely follows that in the [RBAC Configuration](https://github.com/DecipherNow/workshops/blob/master/training/4.%20Grey%20Matter%20Configuration/Grey%20Matter%20Configuration%20Training.md#securing-the-mesh-with-role-based-access-control-rbac) portion of the greymatter workshops.
 
 Prereq: You will need to have the decipher quickstart certs loaded into your browser to access, [downloadable from here](https://drive.google.com/file/d/1YEyw5vEHrXhDpGuDk9RHQcQk5kFk38uz/view).
 
@@ -19,7 +21,7 @@ In your ec2, you should see a directory `greymatter_setup`.  We will start Grey 
 Run the following commands to start minikube and set up Grey Matter in your ec2 instance.
 
 ```bash
-cd /greymatter_setup
+cd greymatter_setup/
 ./setup.sh
 ```
 
@@ -77,11 +79,11 @@ Lastly, deploy the fibonacci service by running the following commands.
 ./fib.sh
 ```
 
-In your browser, you should now see the fibonacci service among the core services.  Navigate to <https://{your-ec2-ip}:30000/services/fibonacci/latest>, if you see `Alive`, the fibonacci service is running.  When this is the case, your setup is complete!
+In your browser, you should now see the fibonacci service among the core services.  Navigate to <https://{your-ec2-ip}:30000/services/fibonacci/1.0/>, if you see `Alive`, the fibonacci service is running.  When this is the case, your setup is complete!
 
 ## Basic RBAC
 
-We will start by configuring a basic RBAC policy on your fibonacci service. Using your editor of choice, `export EDITOR=vi`.  Then take a look at `greymatter get proxy fibonacci-proxy`.  You should see the following:
+We will start by configuring a basic RBAC policy on your fibonacci service. Using your editor of choice, `export EDITOR=vi # or whatever`.  Then take a look at `greymatter get proxy fibonacci-proxy`.  You should see the following:
 
 ```bash
 {
@@ -171,7 +173,7 @@ To test that the RBAC filter has been enabled, hit  `https://{your-ec2-public-ip
 To make sure that users with `user_dn: cn=not.you` in fact _do_ have access to the service, we will take advantage of the current setup with unrestricted impersonation to run the following.
 
 ```bash
-curl -k --header "user_dn: cn=not.you" --cert ./certs/quickstart.crt --key ./certs/quickstart.key https://{your-ec2-public-ip}:{port}/services/fibonacci/1.0/
+curl -k --header "user_dn: cn=not.you" --cert /etc/ssl/quickstart/certs/quickstart.crt --key /etc/ssl/quickstart/certs/quickstart.key https://{your-ec2-public-ip}:{port}/services/fibonacci/1.0/
 ```
 
 The response should be `Alive`. So if we impersonate the "not you" user, we are allowed access.
@@ -180,7 +182,7 @@ The response should be `Alive`. So if we impersonate the "not you" user, we are 
 
 Now, as a second example, we will allow the quickstart certificate dn full access (`PUT`, `POST`, `DELETE`, etc.) to the service.  We will also allow anyone to `GET` request the service, regardless of identity.
 
-To do this, we will change the `user_dn` in the RBAC policy to `CN=quickstart,OU=Engineering,O=Decipher Technology Studios,L=Alexandria,ST=Virginia,C=US`, the one from the quickstart certificate.  Then when we pass the header in the request, we should have full access to the service.  We will also add a second policy to allow _all_ users `GET` access.
+To do this, we will change the `user_dn` in the RBAC policy to `CN=quickstart,OU=Engineering,O=Decipher Technology Studios,L=Alexandria,ST=Virginia,C=US`, the one from the quickstart certificate.  Then when the header is passed in the request, the user should have full access to the service.  There will also be a second policy to allow _all_ users `GET` access.
 
 > Note:  when using an RBAC configuration with multiple policies, the **policies are sorted lexicographically and enforced in this order**. In this example, the two policies are named "001" and "002", and will apply in that order because "002" sorts lexicographically _after_ "001".
 
@@ -213,30 +215,30 @@ To do this, we will change the `user_dn` in the RBAC policy to `CN=quickstart,OU
 }
 ```
 
-To test the new policies, we can hit `https://{your-ec2-public-ip}:{port}/services/fibonacci/1.0/` in the browser and we should see `Alive` once the RBAC filter has taken affect. This is because we are making a `GET` request to the service. Now, try the following:
+To test the new policies, hit `https://{your-ec2-public-ip}:{port}/services/fibonacci/1.0/` in the browser and we should see `Alive` once the RBAC filter has taken affect. This is because we are making a `GET` request to the service. Now, try the following:
 
-```diff
-# 1)
-curl -k --cert ./certs/quickstart.crt --key ./certs/quickstart.key https://{your-ec2-public-ip}:{port}/services/fibonacci/1.0/
+1. This request should respond with `Alive`, as it is a `GET` request to the service.
 
-# 2)
-curl -k -X PUT  --cert ./certs/quickstart.crt --key ./certs/quickstart.key https://{your-ec2-public-ip}:{port}/services/fibonacci/1.0/
+    ```diff
+    curl -k --cert /etc/ssl/quickstart/certs/quickstart.crt --key /etc/ssl/quickstart/certs/quickstart.key https://{your-ec2-public-ip}:{port}/services/fibonacci/1.0/
+    ```
 
-# 3)
-curl -k -X PUT  --header "user_dn: CN=quickstart,OU=Engineering,O=Decipher Technology Studios,L=Alexandria,ST=Virginia,C=US" --cert ./certs/quickstart.crt --key ./certs/quickstart.key https://{your-ec2-public-ip}:{port}/services/fibonacci/1.0/
-```
+2. This request should respond `RBAC: access denied` as this was a `PUT` request without the header allowed in the policy.
 
-1. The first request should have responded with `Alive`, as this is a `GET` request to the service.
-2. The second request should have given `RBAC: access denied` as this was a `PUT` request without the header allowed in the policy. 
-3. The third request should have also succeeded with response `Alive`, because it was a `PUT` request with the header `user_dn: CN=quickstart,OU=Engineering,O=Decipher Technology Studios,L=Alexandria,ST=Virginia,C=US` .
+    ```diff
+    curl -k -X PUT  --cert /etc/ssl/quickstart/certs/quickstart.crt --key /etc/ssl/quickstart/certs/quickstart.key https://{your-ec2-public-ip}:{port}/services/fibonacci/1.0/
+    ```
+
+3. This should succeed with response `Alive`, because it was a `PUT` request with the header `user_dn: CN=quickstart,OU=Engineering,O=Decipher Technology Studios,L=Alexandria,ST=Virginia,C=US` .
+
+    ```diff
+    curl -k -X PUT  --header "user_dn: CN=quickstart,OU=Engineering,O=Decipher Technology Studios,L=Alexandria,ST=Virginia,C=US" --cert /etc/ssl/quickstart/certs/quickstart.crt --key /etc/ssl/quickstart/certs/quickstart.key https://{your-ec2-public-ip}:{port}/services/fibonacci/1.0/
+    ```
 
 ### Complex Configurations
 
 There are many more complex ways to configure the RBAC filter for different policies, permissions, and IDs.  Information on configuring these can be found in the Envoy documentation [here](https://www.envoyproxy.io/docs/envoy/v1.7.0/api-v2/config/rbac/v2alpha/rbac.proto).
 
 If we have time in the workshop, lets try a more complex configuration.
-
-
-
 
 To disable the RBAC filter, simply `greymatter edit proxy fibonacci-proxy` and delete `"envoy.rbac"` from the `"active_proxy_filters"`.

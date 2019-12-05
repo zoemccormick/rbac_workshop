@@ -18,7 +18,7 @@ wget https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd6
 chmod +x minikube-linux-amd64
 sudo mv minikube-linux-amd64 /usr/local/bin/minikube
 
-sudo minikube start --vm-driver=none --memory 16384 --cpus 6 --kubernetes-version='v1.15.5'
+sudo minikube start --vm-driver=none --memory 4096 --cpus 4 --kubernetes-version='v1.15.5'
 
 sudo helm init
 sleep 60
