@@ -77,7 +77,7 @@ Lastly, deploy the fibonacci service by running
 ./fib.sh
 ```
 
-In your browser, you should now see the fibonacci service among the core services.  Navigate to `https://{your-ec2-ip}:30000/services/fibonacci/1.0/>` if you see `Alive`, the fibonacci service is running.  When this is the case, your setup is complete!
+In your browser, you should now see the fibonacci service among the core services.  Navigate to `https://{your-ec2-ip}:30000/services/fibonacci/1.0/` if you see `Alive`, the fibonacci service is running.  When this is the case, your setup is complete!
 
 ## Basic RBAC
 
@@ -306,7 +306,7 @@ Try `greymatter edit proxy fibonacci-proxy` and change the rbac configuration to
 
 This policy is allowing ids with user_dn equal to `CN=first1.last1` **or** `CN=first2.last2` permission to `PUT` or `DELETE` or `POST` request the service. It is also allowing anyone to get request the service.
 
-To test this policy, navigate to the the same url `https://{your-ec2-public-ip}:{port}/services/fibonacci/1.0/` in the browser. You should have access to the service here because this is a `GET` request.
+Again, wait ~2/3 minutes for the policy register.  Then, to test this policy, navigate to the the same url `https://{your-ec2-public-ip}:{port}/services/fibonacci/1.0/` in the browser. You should have access to the service here because this is a `GET` request.
 
 Now, try the following:
 
