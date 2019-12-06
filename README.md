@@ -173,7 +173,7 @@ To test that the RBAC filter has been enabled, hit  `https://{your-ec2-public-ip
 To make sure that users with `user_dn: cn=not.you` in fact _do_ have access to the service, we will take advantage of the current setup with unrestricted impersonation to run the following.
 
 ```bash
-curl -k --header "user_dn: cn=not.you" --cert /etc/ssl/quickstart/certs/quickstart.crt --key /etc/ssl/quickstart/certs/quickstart.key https://{your-ec2-public-ip}:{port}/services/fibonacci/1.0/
+curl -k --header "user_dn: cn=not.you" --cert /etc/ssl/quickstart/certs/quickstart.crt --key /etc/ssl/quickstart/certs/quickstart.key https://$GREYMATTER_API_HOST/services/fibonacci/1.0/
 ```
 
 The response should be `Alive`. So if we impersonate the "not you" user, we are allowed access.
