@@ -2,7 +2,7 @@
 
 echo Docker Credentials:
 read -p "docker email: " DECIPHER_DOCKER_EMAIL
-read -p "docker password: " DECIPHER_DOCKER_PASSWORD
+read -p "docker password: " -s DECIPHER_DOCKER_PASSWORD
 
 export DECIPHER_DOCKER_EMAIL=$DECIPHER_DOCKER_EMAIL
 export DECIPHER_DOCKER_USER=$DECIPHER_DOCKER_EMAIL
