@@ -182,9 +182,9 @@ The response should be `Alive`. So if we impersonate the "not you" user, we are 
 
 ## A more useful example
 
-Now, as a second example, we will allow the quickstart certificate dn full access (`PUT`, `POST`, `DELETE`, etc.) to the service.  We will also allow anyone to `GET` request the service, regardless of identity.
+Now, as a second example, we will allow the quickstart certificate access to `GET` request the service.  The user `cn=not.you` will still have full access to the service.
 
-To do this, we will change the `user_dn` in the RBAC policy to `CN=quickstart,OU=Engineering,O=Decipher Technology Studios,L=Alexandria,ST=Virginia,C=US`, the one from the quickstart certificate.  Then when the header is passed in the request, the user should have full access to the service.  There will also be a second policy to allow _all_ users `GET` access.
+To do this, we will add a policy that allows the user `CN=quickstart,OU=Engineering,O=Decipher Technology Studios,=Alexandria,=Virginia,C=US` `GET` permissions to the fibonacci service.  Remember that order matters, so if the user had id `user_dn: cn=not.you`, they will be allowed full service access, and then if the user does not have that id, the filter will check that the action is `GET` and that the user_dn is `CN=quickstart,OU=Engineering,O=Decipher Technology Studios,=Alexandria,=Virginia,C=US`.
 
 > Note:  when using an RBAC configuration with multiple policies, the **policies are sorted lexicographically and enforced in this order**. In this example, the two policies are named "001" and "002", and will apply in that order because "002" sorts lexicographically _after_ "001".
 
