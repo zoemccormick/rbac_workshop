@@ -21,7 +21,7 @@ sudo mv minikube-linux-amd64 /usr/local/bin/minikube
 sudo minikube start --vm-driver=none --memory 4096 --cpus 4 --kubernetes-version='v1.15.5'
 
 sudo helm init
-sleep 60
+sleep 45
 sudo helm repo add appscode https://charts.appscode.com/stable/
 sudo helm repo update
 sudo helm install appscode/voyager --name voyager-operator --version 10.0.0 \
@@ -29,7 +29,7 @@ sudo helm install appscode/voyager --name voyager-operator --version 10.0.0 \
   --set cloudProvider=minikube \
   --set enableAnalytics=false \
   --set apiserver.enableAdmissionWebhook=false
-sleep 60
+sleep 45
 
 sudo helm repo add decipher https://nexus.production.deciphernow.com/repository/helm-hosted --username $NEXUS_USER --password $NEXUS_PASSWORD
 sudo helm repo update
@@ -39,7 +39,7 @@ sudo helm install decipher/greymatter -f custom-greymatter.yaml -f custom-greyma
 
 sleep 30
 sudo kubectl get pods
-sleep 60 
+sleep 45 
 sudo kubectl get pods
-sleep 100
+sleep 45
 sudo kubectl get pods

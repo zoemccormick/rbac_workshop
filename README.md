@@ -1,10 +1,8 @@
 # RBAC Workshop
 
-## Setup
-
 This workshop will go through how to restrict service access via the Grey Matter RBAC filter.  
 
-The setup of the mesh, the greymatter cli, and deployment of the fibonacci service are scripted here for you, but see [Greymatter Workshops](https://github.com/deciphernow/workshops) for the full step by step setup.  The RBAC portion of this workshop also largely follows that in the [RBAC Configuration](https://github.com/DecipherNow/workshops/blob/master/training/4.%20Grey%20Matter%20Configuration/Grey%20Matter%20Configuration%20Training.md#securing-the-mesh-with-role-based-access-control-rbac) portion of the greymatter workshops.
+The setup of the mesh, the greymatter cli, and deployment of the fibonacci service are scripted here for you, but see [Greymatter Workshops](https://github.com/deciphernow/workshops) for the full step by step setup.  The RBAC portion of this workshop also aligns with the [RBAC Configuration](https://github.com/DecipherNow/workshops/blob/master/training/4.%20Grey%20Matter%20Configuration/Grey%20Matter%20Configuration%20Training.md#securing-the-mesh-with-role-based-access-control-rbac) portion of the greymatter workshops.
 
 Prereq: You will need to have the decipher quickstart certs loaded into your browser to access, [downloadable from here](https://drive.google.com/file/d/1YEyw5vEHrXhDpGuDk9RHQcQk5kFk38uz/view).
 
@@ -14,7 +12,7 @@ See the spreadsheet for your ec2 instance ip, and ssh into it using the posted `
 ssh -i rbac_workshop.pem ubuntu@{your-ip}
 ```
 
-### Grey Matter Setup
+## Grey Matter Setup
 
 In your ec2, you should see a directory `greymatter_setup`.  We will start Grey Matter, set up the greymatter cli, and deploy an instance of the fibonacci service.
 
@@ -26,7 +24,7 @@ cd greymatter_setup/
 ```
 
 You will be prompted for your docker credentials - these are the ones used for Nexus docker.production.deciphernow.com.
-This will start minikube and run Grey Matter.  When you see the following pod list with everything ready, navigate to <https://{your-ec2-ip}:30000>, in a browser, and the dashboard should come up.
+This will start minikube and run Grey Matter.  When you see the following pod list with everything ready (this will take about ~5 minutes), navigate to `https://{your-ec2-ip}:30000`, in a browser, and the dashboard should come up.
 
 ```bash
 NAME                                     READY     STATUS    RESTARTS   AGE
@@ -73,13 +71,13 @@ If you see
 
 the cli should be set up.
 
-Lastly, deploy the fibonacci service by running the following commands.
+Lastly, deploy the fibonacci service by running
 
 ```bash
 ./fib.sh
 ```
 
-In your browser, you should now see the fibonacci service among the core services.  Navigate to <https://{your-ec2-ip}:30000/services/fibonacci/1.0/>, if you see `Alive`, the fibonacci service is running.  When this is the case, your setup is complete!
+In your browser, you should now see the fibonacci service among the core services.  Navigate to `https://{your-ec2-ip}:30000/services/fibonacci/1.0/>` if you see `Alive`, the fibonacci service is running.  When this is the case, your setup is complete!
 
 ## Basic RBAC
 
@@ -184,7 +182,7 @@ The response should be `Alive`. So if we impersonate the "not you" user, we are 
 
 Now, as a second example, we will allow the quickstart certificate access to `GET` request the service.  The user `cn=not.you` will still have full access to the service.
 
-To do this, we will add a policy that allows the user `CN=quickstart,OU=Engineering,O=Decipher Technology Studios,=Alexandria,=Virginia,C=US` `GET` permissions to the fibonacci service.  Remember that order matters, so if the user had id `user_dn: cn=not.you`, they will be allowed full service access, and then if the user does not have that id, the filter will check that the action is `GET` and that the user_dn is `CN=quickstart,OU=Engineering,O=Decipher Technology Studios,=Alexandria,=Virginia,C=US`.
+To do this, we will add a policy that allows the user `CN=quickstart,OU=Engineering,O=Decipher Technology Studios,=Alexandria,=Virginia,C=US` `GET` permissions to the fibonacci service. Check out the following configuration.  When a request comes in, it will be matched based on policy in lexicographical order, so below if the user_dn is `cn=not.you`, the RBAC filter will allow full access, if it is not, it will check the next policy for a matching action and id.
 
 > Note:  when using an RBAC configuration with multiple policies, the **policies are sorted lexicographically and enforced in this order**. In this example, the two policies are named "001" and "002", and will apply in that order because "002" sorts lexicographically _after_ "001".
 
@@ -218,7 +216,7 @@ To do this, we will add a policy that allows the user `CN=quickstart,OU=Engineer
 }
 ```
 
-To test the new policies, hit `https://{your-ec2-public-ip}:{port}/services/fibonacci/1.0/` in the browser and we should see `Alive` once the RBAC filter has taken affect. This is because we are making a `GET` request to the service. Now, try the following `PUT` requests to make sure only the correct user (`cn=not.you`) has `PUT` access:
+Again, give the filter several minutes to take effect. To test the new policies, hit `https://{your-ec2-public-ip}:{port}/services/fibonacci/1.0/` in the browser and we should see `Alive` once the RBAC filter has been configured. This is because we are making a `GET` request to the service. Now, try the following `PUT` requests to make sure only the correct user (`cn=not.you`) has `PUT` access:
 
 1. This request should respond with `RBAC: access denied`, as it is a `PUT` request to the service, and we do not have the user dn `cn=not.you`.
 
@@ -232,7 +230,7 @@ To test the new policies, hit `https://{your-ec2-public-ip}:{port}/services/fibo
     curl -k -X PUT  --header "user_dn: cn=not.you" --cert /etc/ssl/quickstart/certs/quickstart.crt --key /etc/ssl/quickstart/certs/quickstart.key https://$GREYMATTER_API_HOST/services/fibonacci/1.0/
     ```
 
-### Complex Configurations
+## A more complex configuration
 
 There are many more complex ways to configure the RBAC filter for different policies, permissions, and IDs.  Information on configuring these can be found in the Envoy documentation [here](https://www.envoyproxy.io/docs/envoy/v1.7.0/api-v2/config/rbac/v2alpha/rbac.proto).
 
@@ -306,13 +304,13 @@ Try `greymatter edit proxy fibonacci-proxy` and change the rbac configuration to
     }
 ```
 
-In english, this policy is allowing ids with user_dn equal to `CN=first1.last1` *or* `CN=first2.last2` permission to `PUT` or `DELETE` or `POST` request the service. It is also allowing anyone to get request the service.
+This policy is allowing ids with user_dn equal to `CN=first1.last1` **or** `CN=first2.last2` permission to `PUT` or `DELETE` or `POST` request the service. It is also allowing anyone to get request the service.
 
 To test this policy, navigate to the the same url `https://{your-ec2-public-ip}:{port}/services/fibonacci/1.0/` in the browser. You should have access to the service here because this is a `GET` request.
 
 Now, try the following:
 
-1. This is a PUT request, a DELETE request, a POST request, and a GET request to the service. The response should be `RBAC: access denied` for the first three requests because the user_dn is that of our cert and will not match `CN=first1.last1` or `CN=first2.last2`.  The last request should succeed with response `Alive` because anyone is allowed to `GET` request the service.
+1. This is a PUT request, a DELETE request, a POST request, and a GET request to the service. The response should be `RBAC: access denied` for the first three requests because the user_dn is coming from our cert and will not match `CN=first1.last1` or `CN=first2.last2`.  The last request should succeed with response `Alive` because anyone is allowed to `GET` request the service.
 
     ```bash
     #1
@@ -350,6 +348,6 @@ Now, try the following:
     ```
 
 Yay! You have now completed three configurations of the RBAC filter!
-As you can see, large configurations can quickly become tricky.  It is important to remember ordering, and to keep in mind that when the actions are assessed, the policies are traversed in order looking for action and then id until there is a match.
+As you can see, large configurations can quickly become tricky.  It is important to remember ordering, and to keep in mind that when the actions are assessed, the policies are traversed in order until a match is found.
 
 To disable the RBAC filter, simply `greymatter edit proxy fibonacci-proxy` and delete `"envoy.rbac"` from the `"active_proxy_filters"`.
