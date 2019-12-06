@@ -83,6 +83,8 @@ In your browser, you should now see the fibonacci service among the core service
 
 ## Basic RBAC
 
+It should be noted that for testing purposes we will simply set a `user_dn` header on curl requests - this will not be possible with the impersonation filter properly configured.
+
 We will start by configuring a basic RBAC policy on your fibonacci service. Using your editor of choice, `export EDITOR=vi # or whatever`.  Then take a look at `greymatter get proxy fibonacci-proxy`.  You should see the following:
 
 ```bash
@@ -196,18 +198,19 @@ To do this, we will change the `user_dn` in the RBAC policy to `CN=quickstart,OU
             "001": {
                 "permissions":
                 [
-                    {"any": true}
+                        {"any": true}
                 ],
                 "principals": [
-                                {"header": {"name": "user_dn","exact_match": "CN=quickstart,OU=Engineering,O=Decipher Technology Studios,L=Alexandria,ST=Virginia,C=US"}}
+                                    {"header": {"name": "user_dn","exact_match": "cn=not.you"}}
                 ]
-            },
+                },
             "002": {
-                "permissions": [
-                                {"header": {"name": ":method","exact_match": "GET"}}
+                "permissions":
+                [
+                    {"header": {"name": ":method","exact_match": "GET"}}
                 ],
                 "principals": [
-                    {"any": true}
+                                {"header": {"name": "user_dn","exact_match": "CN=quickstart,OU=Engineering,O=Decipher Technology Studios,=Alexandria,=Virginia,C=US"}}
                 ]
             }
         }
@@ -215,24 +218,18 @@ To do this, we will change the `user_dn` in the RBAC policy to `CN=quickstart,OU
 }
 ```
 
-To test the new policies, hit `https://{your-ec2-public-ip}:{port}/services/fibonacci/1.0/` in the browser and we should see `Alive` once the RBAC filter has taken affect. This is because we are making a `GET` request to the service. Now, try the following:
+To test the new policies, hit `https://{your-ec2-public-ip}:{port}/services/fibonacci/1.0/` in the browser and we should see `Alive` once the RBAC filter has taken affect. This is because we are making a `GET` request to the service. Now, try the following `PUT` requests to make sure only the correct user (`cn=not.you`) has `PUT` access:
 
-1. This request should respond with `Alive`, as it is a `GET` request to the service.
-
-    ```diff
-    curl -k --cert /etc/ssl/quickstart/certs/quickstart.crt --key /etc/ssl/quickstart/certs/quickstart.key https://$GREYMATTER_API_HOST/services/fibonacci/1.0/
-    ```
-
-2. This request should respond `RBAC: access denied` as this was a `PUT` request without the header allowed in the policy.
+1. This request should respond with `RBAC: access denied`, as it is a `PUT` request to the service, and we do not have the user dn `cn=not.you`.
 
     ```diff
     curl -k -X PUT  --cert /etc/ssl/quickstart/certs/quickstart.crt --key /etc/ssl/quickstart/certs/quickstart.key https://$GREYMATTER_API_HOST/services/fibonacci/1.0/
     ```
 
-3. This should succeed with response `Alive`, because it was a `PUT` request with the header `user_dn: CN=quickstart,OU=Engineering,O=Decipher Technology Studios,L=Alexandria,ST=Virginia,C=US` .
+2. This should succeed with response `Alive`, because it was a `PUT` request with the header `user_dn: cn=not.you`.
 
     ```diff
-    curl -k -X PUT  --header "user_dn: CN=quickstart,OU=Engineering,O=Decipher Technology Studios,L=Alexandria,ST=Virginia,C=US" --cert /etc/ssl/quickstart/certs/quickstart.crt --key /etc/ssl/quickstart/certs/quickstart.key https://$GREYMATTER_API_HOST/services/fibonacci/1.0/
+    curl -k -X PUT  --header "user_dn: cn=not.you" --cert /etc/ssl/quickstart/certs/quickstart.crt --key /etc/ssl/quickstart/certs/quickstart.key https://$GREYMATTER_API_HOST/services/fibonacci/1.0/
     ```
 
 ### Complex Configurations
@@ -240,5 +237,119 @@ To test the new policies, hit `https://{your-ec2-public-ip}:{port}/services/fibo
 There are many more complex ways to configure the RBAC filter for different policies, permissions, and IDs.  Information on configuring these can be found in the Envoy documentation [here](https://www.envoyproxy.io/docs/envoy/v1.7.0/api-v2/config/rbac/v2alpha/rbac.proto).
 
 If we have time in the workshop, lets try a more complex configuration.
+
+Try `greymatter edit proxy fibonacci-proxy` and change the rbac configuration to the following:
+
+```diff
+"envoy_rbac": {
+        "rules": {
+            "action": 0,
+            "policies": {
+                "001": {
+                    "permissions": [
+                            {
+                                "or_rules": {
+                                    "rules": [
+                                        {
+                                            "header": {
+                                                "name": ":method",
+                                                "exact_match": "PUT"
+                                            }
+                                        },
+                                        {
+                                            "header": {
+                                                "name": ":method",
+                                                "exact_match": "DELETE"
+                                            }
+                                        },
+                                        {
+                                            "header": {
+                                                "name": ":method",
+                                                "exact_match": "POST"
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        ],
+                    "principals": [
+                            {
+                                "or_ids": {
+                                    "ids": [
+                                        {
+                                        "header": {
+                                            "name": "user_dn",
+                                            "exact_match": "CN=first1.last1"
+                                        }
+                                    },
+                                    {
+                                        "header": {
+                                            "name": "user_dn",
+                                            "exact_match": "CN=first2.last2"
+                                        }
+                                    }
+                                    ]
+                                }
+                            }
+                    ]
+                },
+                "002": {
+                    "permissions": [
+                                    {"header": {"name": ":method","exact_match": "GET"}}
+                    ],
+                    "principals": [
+                        {"any": true}
+                    ]
+                }
+            }
+        }
+    }
+```
+
+In english, this policy is allowing ids with user_dn equal to `CN=first1.last1` *or* `CN=first2.last2` permission to `PUT` or `DELETE` or `POST` request the service. It is also allowing anyone to get request the service.
+
+To test this policy, navigate to the the same url `https://{your-ec2-public-ip}:{port}/services/fibonacci/1.0/` in the browser. You should have access to the service here because this is a `GET` request.
+
+Now, try the following:
+
+1. This is a PUT request, a DELETE request, a POST request, and a GET request to the service. The response should be `RBAC: access denied` for the first three requests because the user_dn is that of our cert and will not match `CN=first1.last1` or `CN=first2.last2`.  The last request should succeed with response `Alive` because anyone is allowed to `GET` request the service.
+
+    ```bash
+    #1
+    curl -k -X PUT  --cert /etc/ssl/quickstart/certs/quickstart.crt --key /etc/ssl/quickstart/certs/quickstart.key https://$GREYMATTER_API_HOST/services/fibonacci/1.0/
+    #2
+    curl -k -X POST  --cert /etc/ssl/quickstart/certs/quickstart.crt --key /etc/ssl/quickstart/certs/quickstart.key https://$GREYMATTER_API_HOST/services/fibonacci/1.0/
+    #3
+    curl -k -X DELETE  --cert /etc/ssl/quickstart/certs/quickstart.crt --key /etc/ssl/quickstart/certs/quickstart.key https://$GREYMATTER_API_HOST/services/fibonacci/1.0/
+    #4
+    curl -k --cert /etc/ssl/quickstart/certs/quickstart.crt --key /etc/ssl/quickstart/certs/quickstart.key https://$GREYMATTER_API_HOST/services/fibonacci/1.0/
+
+    ```
+
+2. This is a PUT request, a DELETE request, and a POST request to the service with the user_dn set to `CN=first1.last1`, and then the same three requests with user_dn set to `CN=first2.last2`.  All six of the responses to these requests should be 'Alive'.
+
+    ```bash
+    #1
+    curl -k -X PUT  --header "user_dn: CN=first1.last1" --cert /etc/ssl/quickstart/certs/quickstart.crt --key /etc/ssl/quickstart/certs/quickstart.key https://$GREYMATTER_API_HOST/services/fibonacci/1.0/
+
+    #2
+    curl -k -X POST  --header "user_dn: CN=first1.last1" --cert /etc/ssl/quickstart/certs/quickstart.crt --key /etc/ssl/quickstart/certs/quickstart.key https://$GREYMATTER_API_HOST/services/fibonacci/1.0/
+
+    #3
+    curl -k -X DELETE  --header "user_dn: CN=first1.last1" --cert /etc/ssl/quickstart/certs/quickstart.crt --key /etc/ssl/quickstart/certs/quickstart.key https://$GREYMATTER_API_HOST/services/fibonacci/1.0/
+
+    #4
+    curl -k -X PUT  --header "user_dn: CN=first2.last2" --cert /etc/ssl/quickstart/certs/quickstart.crt --key /etc/ssl/quickstart/certs/quickstart.key https://$GREYMATTER_API_HOST/services/fibonacci/1.0/
+
+    #5
+    curl -k -X POST  --header "user_dn: CN=first2.last2" --cert /etc/ssl/quickstart/certs/quickstart.crt --key /etc/ssl/quickstart/certs/quickstart.key https://$GREYMATTER_API_HOST/services/fibonacci/1.0/
+
+    #6
+    curl -k -X DELETE  --header "user_dn: CN=first2.last2" --cert /etc/ssl/quickstart/certs/quickstart.crt --key /etc/ssl/quickstart/certs/quickstart.key https://$GREYMATTER_API_HOST/services/fibonacci/1.0/
+
+    ```
+
+Yay! You have now completed three configurations of the RBAC filter!
+As you can see, large configurations can quickly become tricky.  It is important to remember ordering, and to keep in mind that when the actions are assessed, the policies are traversed in order looking for action and then id until there is a match.
 
 To disable the RBAC filter, simply `greymatter edit proxy fibonacci-proxy` and delete `"envoy.rbac"` from the `"active_proxy_filters"`.
